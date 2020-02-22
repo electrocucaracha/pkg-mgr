@@ -30,7 +30,7 @@ responses:
     description: Error
 
 paths:
-  /pkgInstall:
+  /install_pkg:
     get:
       produces:
         - text/plain

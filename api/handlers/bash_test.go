@@ -131,7 +131,7 @@ main`, header, setters)),
 	}
 
 	for _, testCase := range testCases {
-		uri := "/pkgInstall"
+		uri := "/install_pkg"
 
 		t.Run(testCase.label, func(t *testing.T) {
 			swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")

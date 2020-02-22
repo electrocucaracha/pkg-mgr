@@ -40,13 +40,8 @@ spec:
         app: pkg-mgr
         tier: frontend
     spec:
-      volumes:
-      - name: pkg-volume
-        hostPath:
-          path: ../../
-          type: Directory
       initContainers:
-      - image: electrocucaracha/pkg_mgr
+      - image: electrocucaracha/pkg_mgr-init
         name: pkg-mgr-init
         command:
         - init
@@ -70,13 +65,6 @@ spec:
             configMapKeyRef:
               name: pkg-mgr-config
               key: DB_NAME
-        - name: PKG_SCRIPTS_PATH
-          value: /pkg/scripts
-        - name: PKG_MAIN_FILE
-          value: /pkg/install.sh
-        volumeMounts:
-        - mountPath: /pkg
-          name: pkg-volume
       containers:
       - image: electrocucaracha/pkg_mgr
         name: pkg-mgr-api

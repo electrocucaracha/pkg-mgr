@@ -241,7 +241,7 @@ func (o *PkgMgrAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/pkgInstall"] = NewGetScript(o.context, o.GetScriptHandler)
+	o.handlers["GET"]["/install_pkg"] = NewGetScript(o.context, o.GetScriptHandler)
 
 }
 

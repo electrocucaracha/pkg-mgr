@@ -29,7 +29,7 @@ func NewGetScript(ctx *middleware.Context, handler GetScriptHandler) *GetScript 
 	return &GetScript{Context: ctx, Handler: handler}
 }
 
-/*GetScript swagger:route GET /pkgInstall getScript
+/*GetScript swagger:route GET /install_pkg getScript
 
 GetScript get script API
 

@@ -28,4 +28,4 @@ EXPOSE 3000
 COPY --from=builder /bin/pkg_mgr /pkg_mgr
 
 ENTRYPOINT ["/pkg_mgr"]
-CMD ["--help"]
+CMD ["serve"]

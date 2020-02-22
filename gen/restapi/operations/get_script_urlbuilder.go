@@ -42,7 +42,7 @@ func (o *GetScriptURL) SetBasePath(bp string) {
 func (o *GetScriptURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/pkgInstall"
+	var _path = "/install_pkg"
 
 	_basePath := o._basePath
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)

@@ -18,13 +18,6 @@ configMapGenerator:
 - name: pkg-mgr-config
   files:
   - deployments/.env
-patchesJson6902:
-  - target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: pkg-mgr-app
-    path: deployments/kubernetes/volume-patch.yaml
 resources:
 - deployments/kubernetes/mariadb-deployment.yaml
 - deployments/kubernetes/pkg-mgr-deployment.yaml

@@ -29,7 +29,7 @@ func init() {
     "version": "1.0.0"
   },
   "paths": {
-    "/pkgInstall": {
+    "/install_pkg": {
       "get": {
         "produces": [
           "text/plain"
@@ -98,7 +98,7 @@ func init() {
     "version": "1.0.0"
   },
   "paths": {
-    "/pkgInstall": {
+    "/install_pkg": {
       "get": {
         "produces": [
           "text/plain"

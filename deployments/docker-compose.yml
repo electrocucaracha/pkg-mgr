@@ -13,19 +13,13 @@ version: '3.7'
 services:
   init:
     restart: on-failure
-    image: electrocucaracha/pkg_mgr
-    build:
-      context: ../
+    image: electrocucaracha/pkg_mgr-init
     environment:
       PKG_DB_HOSTNAME: mariadb
       PKG_SQL_ENGINE: mysql
       PKG_DB_USERNAME: "${DB_USERNAME}"
       PKG_DB_PASSWORD: "${DB_PASSWORD}"
       PKG_DB_DATABASE: "${DB_NAME}"
-      PKG_SCRIPTS_PATH: /pkg/scripts
-      PKG_MAIN_FILE: /pkg/install.sh
-    volumes:
-      - ../:/pkg:ro
     depends_on:
       - mariadb
     command:
