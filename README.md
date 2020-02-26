@@ -7,20 +7,15 @@ This project provides a Web Server for collecting information about
 package installation metrics and also it can be used to centralize the
 installation of Linux packages for different distributions. This
 initiative is under development but it can be tested using the
-following instructions.
+[All-in-One deployment script](aio.sh).
 
-```bash
-curl -fsSL http://bit.ly/install_pkg | PKG="docker docker-compose make git" bash
-newgrp docker
-git clone --depth 1 https://github.com/electrocucaracha/pkg-mgr
-cd pkg-mgr/
-make install
-```
+    $ curl -fsSL https://raw.githubusercontent.com/electrocucaracha/pkg-mgr/master/aio.sh | bash
 
-Once it's deployed locally, it's possible to consume the scripts
-with the following instruction:
+Once it's dependencies are installed and services are running locally,
+it's possible to consume the scripts. The following example shows how
+install and configure docker properly:
 
-    $ curl -fsSL http://localhost:3000/install_pkg?pkg=terraform | bash
+    $ curl -fsSL http://localhost:3000/install_pkg?pkg=docker | bash
 
 ## License
 

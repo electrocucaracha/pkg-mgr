@@ -1,5 +1,15 @@
 matrix:
   include:
+    - language: python
+      install:
+        - pip install tox
+      script:
+        - tox
+      env:
+        - TOXENV=lint
+    - language: shell
+      script:
+        - bash -c 'shopt -s globstar; shellcheck -x *.sh'
     - language: go
       script:
         - env GO111MODULE=on go test -v ./... -cover
