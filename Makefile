@@ -36,12 +36,14 @@ clean:
 	@rm -f coverage.*
 	@rm -f $(BINARY)
 
-docker: clean
+build: clean
 	@docker-compose --file deployments/docker-compose.yml build --compress --force-rm
 	@docker image prune --force
 install: pull deploy
 pull:
 	@docker-compose --file deployments/docker-compose.yml pull
+push:
+	@docker buildx build --platform linux/amd64,linux/arm64 -t electrocucaracha/pkg_mgr --push .
 deploy: undeploy
 	@docker-compose --file deployments/docker-compose.yml --env-file deployments/.env up --force-recreate --detach --no-build
 logs:
