@@ -4,13 +4,13 @@ WORKDIR /go/src/github.com/electrocucaracha/pkg-mgr
 COPY . .
 
 ENV GO111MODULE "on"
-ENV CGO_ENABLED "1"
+ENV CGO_ENABLED "0"
 ENV GOOS "linux"
 ENV GOARCH "amd64"
 
 RUN go build -v -tags netgo -installsuffix netgo -o /bin/pkg_mgr cmd/server/main.go
 
-FROM debian:buster
+FROM gcr.io/distroless/base:nonroot
 MAINTAINER Victor Morales <electrocucaracha@gmail.com>
 
 ENV PKG_DEBUG "false"
