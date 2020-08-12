@@ -31,7 +31,6 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder './', '/vagrant', type: "rsync",
     rsync__args: ["--verbose", "--archive", "--delete", "-z"]
   config.vm.box =  $box["name"]
-  config.vm.box_version = $box["version"]
   config.vm.hostname = "aio"
   config.vm.provision 'shell', privileged: false, inline: <<-SHELL
     cd /vagrant
