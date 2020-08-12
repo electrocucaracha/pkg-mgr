@@ -42,8 +42,8 @@ paths:
         200:
           description: returns a bash script
           schema:
-              type: string
-              description: contains the bash instructions to install the desired package
+            type: string
+            description: contains the bash instructions to install the desired package
         404:
           $ref: "#/responses/errorNotFound"
         default:

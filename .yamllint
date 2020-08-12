@@ -8,17 +8,10 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 ##############################################################################
 
-secretGenerator:
-  - name: root-db-password
-    literals:
-      - password=secret
-  - name: db-password
-    literals:
-      - password=secret
-configMapGenerator:
-  - name: pkg-mgr-config
-    files:
-      - deployments/.env
-resources:
-  - deployments/kubernetes/mariadb-deployment.yaml
-  - deployments/kubernetes/pkg-mgr-deployment.yaml
+extends: default
+
+ignore: |
+  deployment.yaml
+
+rules:
+  line-length: disable
