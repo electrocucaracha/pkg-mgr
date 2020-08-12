@@ -25,3 +25,49 @@ jobs:
       language: go
       script:
         - env GO111MODULE=on go test -v ./... -cover
+    - name: All-in-One Ubuntu 18.04 LTS validation
+      language: shell
+      script:
+        - ./aio.sh
+    - name: CentOS 7 validation
+      install:
+        - sudo apt update
+        - sudo apt-get install -y -qq -o=Dpkg::Use-Pty=0 --no-install-recommends curl qemu
+        - curl -fsSL http://bit.ly/initVagrant | PROVIDER=libvirt bash
+      script:
+        - MEMORY=6144 sudo -E vagrant up centos_7
+    - name: CentOS 8 validation
+      install:
+        - sudo apt update
+        - sudo apt-get install -y -qq -o=Dpkg::Use-Pty=0 --no-install-recommends curl qemu
+        - curl -fsSL http://bit.ly/initVagrant | PROVIDER=libvirt bash
+      script:
+        - MEMORY=6144 sudo -E vagrant up centos_8
+    - name: Ubuntu 16.04 LTS validation
+      install:
+        - sudo apt update
+        - sudo apt-get install -y -qq -o=Dpkg::Use-Pty=0 --no-install-recommends curl qemu
+        - curl -fsSL http://bit.ly/initVagrant | PROVIDER=libvirt bash
+      script:
+        - MEMORY=6144 sudo -E vagrant up ubuntu_xenial
+    - name: Ubuntu 18.04 LTS validation
+      install:
+        - sudo apt update
+        - sudo apt-get install -y -qq -o=Dpkg::Use-Pty=0 --no-install-recommends curl qemu
+        - curl -fsSL http://bit.ly/initVagrant | PROVIDER=libvirt bash
+      script:
+        - MEMORY=6144 sudo -E vagrant up ubuntu_bionic
+    - name: Ubuntu 20.04 LTS validation
+      install:
+        - sudo apt update
+        - sudo apt-get install -y -qq -o=Dpkg::Use-Pty=0 --no-install-recommends curl qemu
+        - curl -fsSL http://bit.ly/initVagrant | PROVIDER=libvirt bash
+      script:
+        - MEMORY=6144 sudo -E vagrant up ubuntu_focal
+    - name: OpenSUSE Tumbleweed validation
+      install:
+        - sudo apt update
+        - sudo apt-get install -y -qq -o=Dpkg::Use-Pty=0 --no-install-recommends curl qemu
+        - curl -fsSL http://bit.ly/initVagrant | PROVIDER=libvirt bash
+      script:
+        - MEMORY=6144 sudo -E vagrant up opensuse

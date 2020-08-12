@@ -37,16 +37,23 @@ clean:
 	@rm -f $(BINARY)
 
 build: clean
-	@docker-compose --file deployments/docker-compose.yml build --compress --force-rm
-	@docker image prune --force
+	sudo $$(command -v docker-compose) --file deployments/docker-compose.yml build --compress --force-rm
+	sudo docker image prune --force
 install: pull deploy
 pull:
-	@docker-compose --file deployments/docker-compose.yml pull
+	sudo $$(command -v docker-compose) --file deployments/docker-compose.yml pull
 push:
 	@docker buildx build --platform linux/amd64,linux/arm64 -t electrocucaracha/pkg_mgr --push .
 deploy: undeploy
-	@docker-compose --file deployments/docker-compose.yml --env-file deployments/.env up --force-recreate --detach --no-build
+	sudo $$(command -v docker-compose) --file deployments/docker-compose.yml --env-file deployments/.env up --force-recreate --detach --no-build
+	until sudo $$(command -v docker-compose) --file deployments/docker-compose.yml logs api | grep "Serving pkg mgr at"; do \
+		sleep 2; \
+	done
 logs:
-	@docker-compose --file deployments/docker-compose.yml logs --follow
+	sudo $$(command -v docker-compose) --file deployments/docker-compose.yml logs --follow
 undeploy:
-	@docker-compose --file deployments/docker-compose.yml down --remove-orphans
+	sudo $$(command -v docker-compose) --file deployments/docker-compose.yml down --remove-orphans
+pre-deploy-dev: build
+	sudo $$(command -v docker-compose) --file deployments/docker-compose.yml pull init
+	sudo $$(command -v docker-compose) --file deployments/docker-compose.yml pull mariadb
+deploy-dev: pre-deploy-dev deploy

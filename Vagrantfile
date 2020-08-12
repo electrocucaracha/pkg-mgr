@@ -14,15 +14,13 @@ $no_proxy = ENV['NO_PROXY'] || ENV['no_proxy'] || "127.0.0.1,localhost"
   $no_proxy += ",192.168.121.#{i}"
 end
 $no_proxy += ",10.0.2.15"
-$socks_proxy = ENV['socks_proxy'] || ENV['SOCKS_PROXY'] || ""
-$vagrant_boxes = YAML.load_file(File.dirname(__FILE__) + '/distros_supported.yml')
-$box=$vagrant_boxes["ubuntu"]["xenial"]
 
 File.exists?("/usr/share/qemu/OVMF.fd") ? loader = "/usr/share/qemu/OVMF.fd" : loader = File.join(File.dirname(__FILE__), "OVMF.fd")
 if not File.exists?(loader)
   system('curl -O https://download.clearlinux.org/image/OVMF.fd')
 end
 
+distros = YAML.load_file(File.dirname(__FILE__) + '/distros_supported.yml')
 
 Vagrant.configure("2") do |config|
   config.vm.provider :libvirt
@@ -30,18 +28,66 @@ Vagrant.configure("2") do |config|
 
   config.vm.synced_folder './', '/vagrant', type: "rsync",
     rsync__args: ["--verbose", "--archive", "--delete", "-z"]
-  config.vm.box =  $box["name"]
-  config.vm.hostname = "aio"
+  distros["linux"].each do |distro|
+    config.vm.define distro["alias"] do |node|
+      node.vm.box = distro["name"]
+      node.vm.box_check_update = false
+      if distro["alias"] == "clearlinux"
+        node.vm.provider 'libvirt' do |v|
+          v.loader = loader
+        end
+      end
+    end
+  end
+
+   # Install requirements
+  config.vm.provision 'shell', privileged: false, inline: <<-SHELL
+    source /etc/os-release || source /usr/lib/os-release
+    case ${ID,,} in
+        ubuntu|debian)
+            sudo apt-get update
+            sudo apt-get install -y -qq -o=Dpkg::Use-Pty=0 curl
+        ;;
+    esac
+    # NOTE: Shorten link -> https://github.com/electrocucaracha/pkg-mgr_scripts
+    curl -fsSL http://bit.ly/install_pkg | PKG="docker docker-compose make git" bash
+  SHELL
+
+  # Deploy docker compose services
   config.vm.provision 'shell', privileged: false, inline: <<-SHELL
     cd /vagrant
-    ./aio.sh | tee ~/aio.log
+    make deploy-dev
+  SHELL
+
+  # Validate bash retrieval function
+  config.vm.provision 'shell', privileged: false, inline: <<-SHELL
+    set -o errexit
+    attempt_counter=0
+    max_attempts=5
+    until $(curl --output /dev/null --silent --fail http://localhost:3000/install_pkg?pkg=vagrant); do
+       if [ ${attempt_counter} -eq ${max_attempts} ];then
+           echo "Max attempts reached"
+           exit 1
+       fi
+       attempt_counter=$(($attempt_counter+1))
+       sleep 5
+    done
+    curl -fsSL http://localhost:3000/install_pkg?pkg=vagrant | bash
+    if ! command -v vagrant; then
+        echo "Vagrant command line wasn't installed properly"
+        exit 1
+    fi
   SHELL
 
   [:virtualbox, :libvirt].each do |provider|
   config.vm.provider provider do |p|
       p.cpus = 1
-      p.memory = 1024
+      p.memory = ENV['MEMORY'] || 1024
     end
+  end
+
+  config.vm.provider "virtualbox" do |v|
+    v.gui = false
   end
 
   config.vm.provider :libvirt do |v|
