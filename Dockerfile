@@ -1,4 +1,4 @@
-FROM golang:1.13-buster as builder
+FROM golang:1.15-buster as builder
 
 WORKDIR /go/src/github.com/electrocucaracha/pkg-mgr
 COPY . .
