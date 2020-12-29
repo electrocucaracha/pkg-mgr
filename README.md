@@ -3,6 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/electrocucaracha/pkg-mgr)](https://goreportcard.com/report/github.com/electrocucaracha/pkg-mgr)
 [![GoDoc](https://godoc.org/github.com/electrocucaracha/pkg-mgr?status.svg)](https://godoc.org/github.com/electrocucaracha/pkg-mgr)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Docker](https://images.microbadger.com/badges/image/electrocucaracha/pkg_mgr.svg)](http://microbadger.com/images/electrocucaracha/pkg_mgr)
 
 This project provides a Web Server for collecting information about
 package installation metrics and also it can be used to centralize the
