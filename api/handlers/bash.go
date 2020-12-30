@@ -9,7 +9,7 @@ import (
 	middleware "github.com/go-openapi/runtime/middleware"
 )
 
-const header = `#!/bin/bash
+const Header = `#!/bin/bash
 # SPDX-license-identifier: Apache-2.0
 ##############################################################################
 # Copyright (c) 2020
@@ -18,7 +18,7 @@ const header = `#!/bin/bash
 # which accompanies this distribution, and is available at
 # http://www.apache.org/licenses/LICENSE-2.0
 ##############################################################################`
-const setters = `set -o nounset
+const Setters = `set -o nounset
 set -o errexit
 set -o pipefail`
 const MainBashPackage = "install"
@@ -42,7 +42,7 @@ func (e *bashStoreWrapper) Handle(params operations.GetScriptParams) middleware.
 		return operations.NewGetScriptNotFound()
 	}
 
-	output := []string{header, setters}
+	output := []string{Header, Setters}
 	for _, function := range bash.Functions {
 		output = append(output, fmt.Sprintf("function %s {\n%s\n}", function.Name, function.Content))
 	}

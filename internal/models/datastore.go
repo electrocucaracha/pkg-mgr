@@ -1,7 +1,6 @@
 package models
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -21,12 +20,13 @@ type gormDatastore struct {
 	*gorm.DB
 }
 
+// DatastoreFactory stores valid datastores implementations
 type DatastoreFactory func(conf map[string]string) (Datastore, error)
 
 var datastoreFactories = make(map[string]DatastoreFactory)
 
 func init() {
-	Register("mysql", NewMySqlDatastore)
+	Register("mysql", NewMySQLDatastore)
 	Register("sqlite", NewSqliteDatastore)
 }
 
@@ -54,10 +54,10 @@ func GetDatastore(conf map[string]string) (Datastore, error) {
 	engineFactory, ok := datastoreFactories[engine]
 	if !ok {
 		availableDatastores := make([]string, len(datastoreFactories))
-		for k, _ := range datastoreFactories {
+		for k := range datastoreFactories {
 			availableDatastores = append(availableDatastores, k)
 		}
-		return nil, errors.New(fmt.Sprintf("Invalid Datastore name. Must be one of: %s", strings.Join(availableDatastores, ", ")))
+		return nil, fmt.Errorf("Invalid Datastore name. Must be one of: %s", strings.Join(availableDatastores, ", "))
 	}
 
 	return engineFactory(conf)
@@ -82,11 +82,11 @@ func NewSqliteDatastore(conf map[string]string) (Datastore, error) {
 	db.AutoMigrate(&Bash{})
 	db.AutoMigrate(&Function{})
 
-	return &gormDatastore{db}, nil
+	return NewGormDatastore(db)
 }
 
-// NewMySqlDatastore creates a database connection for a MySQL/MariaDB engine
-func NewMySqlDatastore(conf map[string]string) (Datastore, error) {
+// NewMySQLDatastore creates a database connection for a MySQL/MariaDB engine
+func NewMySQLDatastore(conf map[string]string) (Datastore, error) {
 	logger := log.WithFields(log.Fields{"conf": conf})
 
 	var err error
@@ -96,7 +96,7 @@ func NewMySqlDatastore(conf map[string]string) (Datastore, error) {
 		}
 		value, ok := conf[key]
 		if !ok {
-			err = errors.New(fmt.Sprintf("%s is required for the mysql datastore", key))
+			err = fmt.Errorf("%s is required for the mysql datastore", key)
 			return ""
 		}
 		return value
@@ -117,6 +117,15 @@ func NewMySqlDatastore(conf map[string]string) (Datastore, error) {
 	logger.Info("Configuring MySQL DB")
 	db.AutoMigrate(&Bash{})
 	db.AutoMigrate(&Function{})
+
+	return NewGormDatastore(db)
+}
+
+// NewGormDatastore creates a new Datastore using a ORM object
+func NewGormDatastore(db *gorm.DB) (Datastore, error) {
+	if db == nil {
+		return nil, fmt.Errorf("Failed to create a ORM Datastore")
+	}
 
 	return &gormDatastore{db}, nil
 }

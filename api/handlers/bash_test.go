@@ -1,26 +1,41 @@
-package handlers
+package handlers_test
 
 import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
-	"testing"
 
+	"github.com/electrocucaracha/pkg-mgr/api/handlers"
 	"github.com/electrocucaracha/pkg-mgr/gen/restapi"
 	"github.com/electrocucaracha/pkg-mgr/gen/restapi/operations"
 	"github.com/electrocucaracha/pkg-mgr/internal/models"
-	"github.com/go-openapi/loads"
-	"github.com/jinzhu/gorm"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-var testserver *httptest.Server
-
 type mockDB struct {
-	*gorm.DB
 	Items map[string]models.Bash
 	Err   error
+}
+
+func newMockDB() *mockDB {
+	return &mockDB{
+		Items: map[string]models.Bash{
+			"existing_pkg": models.Bash{Pkg: "existing_pkg",
+				Functions: []models.Function{models.Function{
+					Name:    "main",
+					Content: "    echo test",
+				}},
+			},
+			handlers.MainBashPackage: models.Bash{Pkg: handlers.MainBashPackage,
+				Functions: []models.Function{models.Function{
+					Name:    "update_repo",
+					Content: "    apt-get update",
+				}},
+			},
+		},
+	}
 }
 
 func (db *mockDB) GetScript(pkg string) (*models.Bash, error) {
@@ -38,48 +53,86 @@ func (db *mockDB) CreateScript(pkg, instructionSet string) (*models.Bash, []erro
 	return nil, nil
 }
 
-func TestGetScriptHandler(t *testing.T) {
-	testCases := []struct {
-		label            string
-		queryParams      map[string]string
-		mockDatastore    models.Datastore
-		expectedCode     int
-		expectedResponse []byte
-	}{
-		{
-			label:         "Fail to pass request params",
-			mockDatastore: &mockDB{},
-			expectedCode:  http.StatusUnprocessableEntity,
-		},
-		{
-			label: "Fail to find the desired package",
-			queryParams: map[string]string{
-				"pkg": "mock_pkg",
-			},
-			mockDatastore: &mockDB{
-				Items: map[string]models.Bash{
-					"mock_pkg2": models.Bash{Pkg: "mock_pkg2"},
-				},
-			},
-			expectedCode: http.StatusNotFound,
-		},
-		{
-			label: "Get an existing bash script sucessfully",
-			queryParams: map[string]string{
-				"pkg": "mock_pkg",
-			},
-			mockDatastore: &mockDB{
-				Items: map[string]models.Bash{
-					"mock_pkg": models.Bash{Pkg: "mock_pkg",
-						Functions: []models.Function{models.Function{
-							Name:    "main",
-							Content: "    echo test",
-						}},
-					},
-				},
-			},
-			expectedCode: http.StatusOK,
-			expectedResponse: []byte(fmt.Sprintf(`%s
+var _ = Describe("Bash handler", func() {
+	var (
+		err         error
+		recorder    *httptest.ResponseRecorder
+		queryParams map[string]string
+	)
+	uri := "/install_pkg"
+
+	JustBeforeEach(func() {
+		api := operations.NewPkgMgrAPI(swaggerSpec)
+		api.GetScriptHandler = handlers.NewGetBash(newMockDB())
+		err = api.Validate()
+		Expect(err).NotTo(HaveOccurred())
+
+		server := restapi.NewServer(api)
+		server.ConfigureAPI()
+		handler, _ := api.HandlerFor(http.MethodGet, uri)
+		testserver := httptest.NewServer(handler)
+		defer testserver.Close()
+
+		request := httptest.NewRequest(http.MethodGet, uri, nil)
+		if queryParams != nil {
+			q := request.URL.Query()
+			for k, v := range queryParams {
+				q.Add(k, v)
+			}
+			request.URL.RawQuery = q.Encode()
+		}
+		Expect(err).NotTo(HaveOccurred())
+		recorder = httptest.NewRecorder()
+		handler.ServeHTTP(recorder, request)
+	})
+
+	Describe("retrieving scripts from the datastore", func() {
+		Context("when no params are passed", func() {
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+			It("should return a HTTP error code", func() {
+				Expect(recorder).ToNot(BeNil())
+				Expect(recorder.Code).To(Equal(http.StatusUnprocessableEntity))
+			})
+		})
+
+		Context("when the desired package doesn't exist", func() {
+			BeforeEach(func() {
+				queryParams = map[string]string{
+					"pkg": "non_existing_pkg",
+				}
+			})
+
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+			It("should return a not found HTTP code", func() {
+				Expect(recorder).ToNot(BeNil())
+				Expect(recorder.Code).To(Equal(http.StatusNotFound))
+			})
+		})
+
+		Context("when the desired package exists", func() {
+			BeforeEach(func() {
+				queryParams = map[string]string{
+					"pkg": "existing_pkg",
+				}
+			})
+
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+			It("should return a successful script", func() {
+				By("returning an OK status HTTP code")
+				Expect(recorder).ToNot(BeNil())
+				Expect(recorder.Code).To(Equal(http.StatusOK))
+
+				By("parsing the properly the script")
+				body, err := ioutil.ReadAll(recorder.Body)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(body).ToNot(BeNil())
+				Expect(string(body)).To(Equal(fmt.Sprintf(`%s
 
 %s
 
@@ -87,32 +140,31 @@ function main {
     echo test
 }
 
-main`, header, setters)),
-		},
-		{
-			label: "Get an existing bash script sucessfully with update_repo",
-			queryParams: map[string]string{
-				"pkg":        "mock_pkg",
-				"pkg_update": "true",
-			},
-			mockDatastore: &mockDB{
-				Items: map[string]models.Bash{
-					"mock_pkg": models.Bash{Pkg: "mock_pkg",
-						Functions: []models.Function{models.Function{
-							Name:    "main",
-							Content: "    echo test",
-						}},
-					},
-					MainBashPackage: models.Bash{Pkg: MainBashPackage,
-						Functions: []models.Function{models.Function{
-							Name:    "update_repo",
-							Content: "    apt-get update",
-						}},
-					},
-				},
-			},
-			expectedCode: http.StatusOK,
-			expectedResponse: []byte(fmt.Sprintf(`%s
+main`, handlers.Header, handlers.Setters)))
+			})
+		})
+
+		Context("when the desired package exists and the update function is requested", func() {
+			BeforeEach(func() {
+				queryParams = map[string]string{
+					"pkg":        "existing_pkg",
+					"pkg_update": "true",
+				}
+			})
+
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+			It("should return a successful script", func() {
+				By("returning an OK status HTTP code")
+				Expect(recorder).ToNot(BeNil())
+				Expect(recorder.Code).To(Equal(http.StatusOK))
+
+				By("parsing the properly the script")
+				body, err := ioutil.ReadAll(recorder.Body)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(body).ToNot(BeNil())
+				Expect(string(body)).To(Equal(fmt.Sprintf(`%s
 
 %s
 
@@ -126,54 +178,8 @@ function update_repo {
 
 update_repos
 
-main`, header, setters)),
-		},
-	}
-
-	for _, testCase := range testCases {
-		uri := "/install_pkg"
-
-		t.Run(testCase.label, func(t *testing.T) {
-			swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			api := operations.NewPkgMgrAPI(swaggerSpec)
-			api.GetScriptHandler = NewGetBash(testCase.mockDatastore)
-			err = api.Validate()
-			if err != nil {
-				t.Fatal(err)
-			}
-			server := restapi.NewServer(api)
-			server.ConfigureAPI()
-
-			handler, _ := api.HandlerFor(http.MethodGet, uri)
-			testserver = httptest.NewServer(handler)
-			defer testserver.Close()
-
-			request := httptest.NewRequest(http.MethodGet, uri, nil)
-			if testCase.queryParams != nil {
-				q := request.URL.Query()
-				for k, v := range testCase.queryParams {
-					q.Add(k, v)
-				}
-				request.URL.RawQuery = q.Encode()
-			}
-			if err != nil {
-				t.Fatal(err)
-			}
-			recorder := httptest.NewRecorder()
-			handler.ServeHTTP(recorder, request)
-
-			if testCase.expectedCode != recorder.Code {
-				t.Fatalf("Request method returned code: \n%v\n and it was expected: \n%v", recorder.Code, testCase.expectedCode)
-			}
-			body, _ := ioutil.ReadAll(recorder.Body)
-			t.Log(string(body))
-			if testCase.expectedResponse != nil && !reflect.DeepEqual(testCase.expectedResponse, body) {
-				t.Fatalf("Request method returned body: \n%s\n and it was expected: \n%s", body, testCase.expectedResponse)
-			}
-
+main`, handlers.Header, handlers.Setters)))
+			})
 		})
-	}
-}
+	})
+})
